@@ -1,0 +1,6 @@
+{
+  "name": "PyStudio",
+  "description": "Mobile Python IDE and compiler with syntax highlighting, input() support, auto-save, and multi-file management",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

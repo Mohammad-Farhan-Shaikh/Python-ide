@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Python Runner</title>
+    <script src="skulpt.min.js" type="text/javascript"></script>
+    <script src="skulpt-stdlib.js" type="text/javascript"></script>
+</head>
+<body>
+<script type="text/javascript">
+    let isExecuting = false;
+    let inputResolver = null;
+    let currentExecutionId = 0;
+
+    function builtinRead(x) {
+        if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined) {
+            throw "File not found: '" + x + "'";
+        }
+        return Sk.builtinFiles["files"][x];
+    }
+
+    // Built-in plot() function for Python scripts
+    // Usage in Python: plot(["A", "B", "C"], [10, 20, 15], "bar", "My Chart")
+    Sk.builtins.plot = function(xVals, yVals, typeOpt, titleOpt) {
+        let xArr = [];
+        let yArr = [];
+        let plotType = "line";
+        let plotTitle = "Data Plot";
+
+        try {
+            if (xVals && xVals.v) {
+                xArr = xVals.v.map(function(item) { return item.v !== undefined ? String(item.v) : String(item); });
+            }
+            if (yVals && yVals.v) {
+                yArr = yVals.v.map(function(item) { return item.v !== undefined ? Number(item.v) : Number(item); });
+            }
+            if (typeOpt && typeOpt.v) {
+                plotType = String(typeOpt.v);
+            }
+            if (titleOpt && titleOpt.v) {
+                plotTitle = String(titleOpt.v);
+            }
+        } catch(e) {}
+
+        if (window.AndroidBridge && window.AndroidBridge.onPlot) {
+            window.AndroidBridge.onPlot(plotTitle, plotType, JSON.stringify(xArr), JSON.stringify(yArr));
+        }
+        return Sk.builtin.none.none$;
+    };
+
+    window.runPythonCode = function(code, execId) {
+        currentExecutionId = execId;
+        isExecuting = true;
+
+        if (window.AndroidBridge) {
+            window.AndroidBridge.onStarted();
+        }
+
+        Sk.pre = "output";
+        Sk.configure({
+            output: function(text) {
+                if (window.AndroidBridge && isExecuting) {
+                    window.AndroidBridge.onOutput(text, false);
+                }
+            },
+            read: builtinRead,
+            inputfun: function(prompt) {
+                return new Promise(function(resolve, reject) {
+                    inputResolver = resolve;
+                    if (window.AndroidBridge) {
+                        window.AndroidBridge.onRequestInput(prompt || "");
+                    }
+                });
+            },
+            inputfunTakesPrompt: true,
+            execLimit: 60000,
+            __future__: Sk.python3
+        });
+
+        const startTime = Date.now();
+        const promise = Sk.misceval.asyncToPromise(function() {
+            return Sk.importMainWithBody("<stdin>", false, code, true);
+        });
+
+        promise.then(
+            function(mod) {
+                if (isExecuting && currentExecutionId === execId) {
+                    isExecuting = false;
+                    const elapsed = Date.now() - startTime;
+                    if (window.AndroidBridge) {
+                        window.AndroidBridge.onFinished(0, elapsed);
+                    }
+                }
+            },
+            function(err) {
+                if (isExecuting && currentExecutionId === execId) {
+                    isExecuting = false;
+                    const elapsed = Date.now() - startTime;
+                    let errorMsg = err.toString();
+                    if (err.traceback && err.traceback.length > 0) {
+                        let tb = "Traceback (most recent call last):\n";
+                        for (let i = 0; i < err.traceback.length; i++) {
+                            const frame = err.traceback[i];
+                            tb += "  File \"" + (frame.filename || "<stdin>") + "\", line " + frame.lineno;
+                            if (frame.colno) tb += ", col " + frame.colno;
+                            tb += "\n";
+                        }
+                        tb += errorMsg;
+                        errorMsg = tb;
+                    }
+                    if (window.AndroidBridge) {
+                        window.AndroidBridge.onError(errorMsg);
+                        window.AndroidBridge.onFinished(1, elapsed);
+                    }
+                }
+            }
+        );
+    };
+
+    window.provideInput = function(value) {
+        if (inputResolver) {
+            const res = inputResolver;
+            inputResolver = null;
+            res(value);
+        }
+    };
+
+    window.stopExecution = function() {
+        isExecuting = false;
+        if (inputResolver) {
+            const res = inputResolver;
+            inputResolver = null;
+            try {
+                res("");
+            } catch(e) {}
+        }
+        window.location.reload();
+    };
+
+    window.addEventListener("DOMContentLoaded", function() {
+        if (window.AndroidBridge) {
+            window.AndroidBridge.onEngineReady();
+        }
+    });
+</script>
+</body>
+</html>
