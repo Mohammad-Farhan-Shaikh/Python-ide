@@ -9,6 +9,14 @@
 **PyStudio** is a full-featured, offline-capable mobile Integrated Development Environment (IDE) built specifically for Android using modern **Kotlin** and **Jetpack Compose (Material 3)**. It provides a real development experience directly on phones and tablets with embedded Python runtime execution, interactive standard I/O (`input()`), multi-file workspace navigation, and developer community sharing.
 
 ---
+## App Screenshots 
+
+<img width="286" height="647" alt="image" src="https://github.com/user-attachments/assets/d75aca93-67c3-45cc-86b7-f7a849469dea" />
+<img width="286" height="632" alt="image" src="https://github.com/user-attachments/assets/20a0c80b-145b-472e-a09d-2e3cd23b0d1b" />
+<img width="286" height="641" alt="image" src="https://github.com/user-attachments/assets/7d75d0fb-54c9-4fd7-b76d-d569e3b6b91e" />
+<img width="292" height="626" alt="image" src="https://github.com/user-attachments/assets/f43cb9b7-9753-4e5d-a52b-6961d9024143" />
+
+
 
 ## 📸 Key Capabilities & Highlights
 
